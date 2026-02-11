@@ -1,14 +1,20 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { motion } from "framer-motion";
+import { Flame } from "lucide-react";
 
-const Index = () => {
+export default function Index() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-center py-20"
+      >
+        <Flame className="h-16 w-16 text-primary mx-auto mb-4 animate-pulse" />
+        <h1 className="text-3xl font-bold mb-2 text-glow">Your Feed</h1>
+        <p className="text-muted-foreground">
+          Follow people to see their posts here. Coming in Phase 2!
+        </p>
+      </motion.div>
     </div>
   );
-};
-
-export default Index;
+}
