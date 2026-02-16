@@ -10,6 +10,7 @@ import Index from "@/pages/Index";
 import Profile from "@/pages/Profile";
 import Create from "@/pages/Create";
 import Explore from "@/pages/Explore";
+import Reels from "@/pages/Reels";
 import NotFound from "@/pages/NotFound";
 import { ReactNode } from "react";
 
@@ -41,7 +42,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
-            <Route path="/reels" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Reels — Coming Soon</div></ProtectedRoute>} />
+            <Route path="/reels" element={<ProtectedRoute><Reels /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Notifications — Coming Soon</div></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
