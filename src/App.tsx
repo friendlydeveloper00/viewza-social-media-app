@@ -8,6 +8,8 @@ import MainLayout from "@/components/layout/MainLayout";
 import Auth from "@/pages/Auth";
 import Index from "@/pages/Index";
 import Profile from "@/pages/Profile";
+import Create from "@/pages/Create";
+import Explore from "@/pages/Explore";
 import NotFound from "@/pages/NotFound";
 import { ReactNode } from "react";
 
@@ -38,10 +40,10 @@ const App = () => (
             <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/explore" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Explore — Coming in Phase 2</div></ProtectedRoute>} />
-            <Route path="/reels" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Reels — Coming in Phase 2</div></ProtectedRoute>} />
-            <Route path="/create" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Create — Coming in Phase 2</div></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Notifications — Coming in Phase 5</div></ProtectedRoute>} />
+            <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
+            <Route path="/reels" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Reels — Coming Soon</div></ProtectedRoute>} />
+            <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Notifications — Coming Soon</div></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
