@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 export interface ConversationWithDetails {
   id: string;
@@ -40,7 +40,6 @@ export function useConversations() {
     queryFn: async (): Promise<ConversationWithDetails[]> => {
       if (!user) return [];
 
-      // Get user's conversation IDs
       const { data: participations, error: pErr } = await supabase
         .from("conversation_participants")
         .select("conversation_id")
@@ -51,20 +50,17 @@ export function useConversations() {
 
       const convIds = participations.map((p) => p.conversation_id);
 
-      // Get conversations, all participants, and last messages in parallel
       const [convsRes, allParticipantsRes, messagesRes] = await Promise.all([
         supabase.from("conversations").select("*").in("id", convIds).order("updated_at", { ascending: false }),
         supabase.from("conversation_participants").select("conversation_id, user_id").in("conversation_id", convIds),
         supabase.from("messages").select("conversation_id, content, created_at, sender_id, read_at").in("conversation_id", convIds).order("created_at", { ascending: false }),
       ]);
 
-      // Find other user IDs
       const otherUserIds = new Set<string>();
       allParticipantsRes.data?.forEach((p) => {
         if (p.user_id !== user.id) otherUserIds.add(p.user_id);
       });
 
-      // Get profiles for other users
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, username, display_name, avatar_url")
@@ -72,13 +68,11 @@ export function useConversations() {
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]));
 
-      // Build conversation map of other participant
       const convOtherUser = new Map<string, string>();
       allParticipantsRes.data?.forEach((p) => {
         if (p.user_id !== user.id) convOtherUser.set(p.conversation_id, p.user_id);
       });
 
-      // Last message per conversation and unread count
       const lastMessageMap = new Map<string, { content: string; created_at: string; sender_id: string }>();
       const unreadMap = new Map<string, number>();
 
@@ -149,7 +143,7 @@ export function useMessages(conversationId: string | null) {
     enabled: !!conversationId && !!user,
   });
 
-  // Real-time subscription
+  // Real-time subscription for inserts AND updates (read receipts)
   useEffect(() => {
     if (!conversationId) return;
 
@@ -158,7 +152,7 @@ export function useMessages(conversationId: string | null) {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
@@ -193,7 +187,6 @@ export function useSendMessage() {
       });
       if (error) throw error;
 
-      // Update conversation timestamp
       await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
     },
     onSuccess: (_, vars) => {
@@ -201,6 +194,86 @@ export function useSendMessage() {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
+}
+
+// Mark messages as read
+export function useMarkMessagesRead() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    async (conversationId: string) => {
+      if (!user) return;
+      await supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("conversation_id", conversationId)
+        .neq("sender_id", user.id)
+        .is("read_at", null);
+      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    [user, queryClient]
+  );
+}
+
+// Typing indicator via Realtime Presence
+export function useTypingIndicator(conversationId: string | null) {
+  const { user } = useAuth();
+  const [othersTyping, setOthersTyping] = useState<string[]>([]);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingTimeoutRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!conversationId || !user) return;
+
+    const channel = supabase.channel(`typing:${conversationId}`, {
+      config: { presence: { key: user.id } },
+    });
+
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        const typingUsers: string[] = [];
+        for (const [userId, presences] of Object.entries(state)) {
+          if (userId !== user.id) {
+            const latest = presences[presences.length - 1] as { typing?: boolean };
+            if (latest?.typing) typingUsers.push(userId);
+          }
+        }
+        setOthersTyping(typingUsers);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ typing: false });
+        }
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, [conversationId, user]);
+
+  const setTyping = useCallback(
+    (isTyping: boolean) => {
+      if (!channelRef.current) return;
+      channelRef.current.track({ typing: isTyping });
+
+      // Auto-clear typing after 3s
+      clearTimeout(typingTimeoutRef.current);
+      if (isTyping) {
+        typingTimeoutRef.current = window.setTimeout(() => {
+          channelRef.current?.track({ typing: false });
+        }, 3000);
+      }
+    },
+    []
+  );
+
+  return { othersTyping, setTyping };
 }
 
 export function useStartConversation() {
@@ -211,7 +284,6 @@ export function useStartConversation() {
     mutationFn: async (otherUserId: string): Promise<string> => {
       if (!user) throw new Error("Not authenticated");
 
-      // Check if conversation already exists between these two users
       const { data: myParticipations } = await supabase
         .from("conversation_participants")
         .select("conversation_id")
@@ -230,7 +302,6 @@ export function useStartConversation() {
         }
       }
 
-      // Create new conversation
       const { data: conv, error: convErr } = await supabase
         .from("conversations")
         .insert({})
@@ -238,7 +309,6 @@ export function useStartConversation() {
         .single();
       if (convErr) throw convErr;
 
-      // Add both participants
       const { error: pErr } = await supabase.from("conversation_participants").insert([
         { conversation_id: conv.id, user_id: user.id },
         { conversation_id: conv.id, user_id: otherUserId },
