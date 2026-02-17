@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Heart, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,7 +33,7 @@ export function PostCard({ post }: { post: PostWithDetails }) {
     <div className="border-b border-border/50">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
+        <Link to={`/profile/${post.user_id}`} className="flex items-center gap-3">
           <Avatar className="h-8 w-8 ring-2 ring-primary/30">
             <AvatarImage src={post.profile.avatar_url || ""} />
             <AvatarFallback className="bg-secondary text-xs">{displayName[0]?.toUpperCase()}</AvatarFallback>
@@ -40,7 +41,7 @@ export function PostCard({ post }: { post: PostWithDetails }) {
           <div>
             <p className="text-sm font-semibold">{displayName}</p>
           </div>
-        </div>
+        </Link>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
           <MoreHorizontal className="h-4 w-4" />
         </Button>

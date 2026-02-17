@@ -25,9 +25,22 @@ export function useFeedPosts() {
   return useQuery({
     queryKey: ["feed-posts", user?.id],
     queryFn: async () => {
+      if (!user) return [];
+
+      // Get followed user IDs
+      const { data: followsData } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", user.id);
+
+      const followedIds = followsData?.map((f) => f.following_id) || [];
+      // Include own posts + followed users' posts
+      const feedUserIds = [user.id, ...followedIds];
+
       const { data: posts, error } = await supabase
         .from("posts")
         .select("id, user_id, caption, created_at")
+        .in("user_id", feedUserIds)
         .order("created_at", { ascending: false })
         .limit(50);
 
