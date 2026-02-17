@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
 import { useFeedPosts } from "@/hooks/use-posts";
 import { PostCard } from "@/components/post/PostCard";
+import StoriesBar from "@/components/stories/StoriesBar";
 
 export default function Index() {
   const { data: posts, isLoading } = useFeedPosts();
@@ -14,6 +15,11 @@ export default function Index() {
           <Flame className="h-6 w-6 text-primary" />
           <span className="text-lg font-bold tracking-tight text-glow">REDVIBE</span>
         </div>
+      </div>
+
+      {/* Stories */}
+      <div className="border-b border-border/50">
+        <StoriesBar />
       </div>
 
       {isLoading ? (
