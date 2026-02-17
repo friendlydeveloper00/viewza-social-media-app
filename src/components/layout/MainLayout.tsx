@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { Home, Search, PlusSquare, Heart, User, Flame, LogOut, Film } from "lucide-react";
+import { Home, Search, PlusSquare, Heart, User, Flame, LogOut, Film, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const navItems = [
   { path: "/explore", icon: Search, label: "Explore" },
   { path: "/reels", icon: Film, label: "Reels" },
   { path: "/create", icon: PlusSquare, label: "Create" },
+  { path: "/messages", icon: MessageCircle, label: "Messages" },
   { path: "/notifications", icon: Heart, label: "Activity" },
   { path: "/profile", icon: User, label: "Profile" },
 ];
