@@ -170,6 +170,7 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: string
+          is_encrypted: boolean
           read_at: string | null
           sender_id: string
         }
@@ -178,6 +179,7 @@ export type Database = {
           conversation_id: string
           created_at?: string
           id?: string
+          is_encrypted?: boolean
           read_at?: string | null
           sender_id: string
         }
@@ -186,6 +188,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: string
+          is_encrypted?: boolean
           read_at?: string | null
           sender_id?: string
         }
@@ -383,6 +386,27 @@ export type Database = {
           },
         ]
       }
+      user_keys: {
+        Row: {
+          created_at: string
+          id: string
+          public_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          public_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          public_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -413,6 +437,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_conversation_member: { Args: { conv_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
