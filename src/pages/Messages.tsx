@@ -150,7 +150,7 @@ export default function Messages() {
                     {conv.last_message && (
                       <p className={cn("text-xs truncate", conv.unread_count > 0 ? "text-foreground" : "text-muted-foreground")}>
                         {conv.last_message.sender_id === user?.id ? "You: " : ""}
-                        {conv.last_message.content}
+                        {conv.last_message.is_encrypted ? "🔒 Encrypted message" : conv.last_message.content}
                       </p>
                     )}
                   </div>

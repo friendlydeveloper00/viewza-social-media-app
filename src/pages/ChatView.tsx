@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, Check, CheckCheck, Lock } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMessages, useSendMessage, useMarkMessagesRead, useTypingIndicator } from "@/hooks/use-messages";
+import { useEncryptionKeys, useOtherPublicKey, encryptForSend, decryptReceived } from "@/hooks/use-encryption";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ export default function ChatView() {
   const sendMessage = useSendMessage();
   const markRead = useMarkMessagesRead();
   const { othersTyping, setTyping } = useTypingIndicator(conversationId || null);
+  const { ready: keysReady, privateKey } = useEncryptionKeys();
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -54,12 +56,41 @@ export default function ChatView() {
     enabled: !!conversationId && !!user,
   });
 
+  const otherPublicKey = useOtherPublicKey(otherUser?.user_id || null);
+  const canEncrypt = keysReady && !!privateKey && !!otherPublicKey;
+
+  // Decrypt messages
+  const [decryptedMessages, setDecryptedMessages] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (!privateKey || !otherPublicKey || messages.length === 0) return;
+
+    const decrypt = async () => {
+      const newDecrypted = new Map<string, string>();
+      for (const msg of messages) {
+        if (msg.is_encrypted) {
+          const decrypted = await decryptReceived(msg.content, privateKey, otherPublicKey);
+          newDecrypted.set(msg.id, decrypted);
+        }
+      }
+      setDecryptedMessages(newDecrypted);
+    };
+
+    decrypt();
+  }, [messages, privateKey, otherPublicKey]);
+
+  // Get display content for a message
+  const getDisplayContent = (msg: { id: string; content: string; is_encrypted: boolean }) => {
+    if (!msg.is_encrypted) return msg.content;
+    return decryptedMessages.get(msg.id) || "🔒 Decrypting...";
+  };
+
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, othersTyping]);
+  }, [messages, othersTyping, decryptedMessages]);
 
   // Mark messages as read when viewing conversation
   useEffect(() => {
@@ -76,10 +107,19 @@ export default function ChatView() {
     setTyping(e.target.value.length > 0);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!text.trim() || !conversationId) return;
     setTyping(false);
-    sendMessage.mutate({ conversationId, content: text.trim() });
+
+    let content = text.trim();
+    let isEncrypted = false;
+
+    if (canEncrypt) {
+      content = await encryptForSend(content, privateKey!, otherPublicKey!);
+      isEncrypted = true;
+    }
+
+    sendMessage.mutate({ conversationId, content, isEncrypted });
     setText("");
   };
 
@@ -91,14 +131,14 @@ export default function ChatView() {
   };
 
   // Find the last own message that was read by the other user
-  const lastReadMessageId = (() => {
+  const lastReadMessageId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].sender_id === user?.id && messages[i].read_at) {
         return messages[i].id;
       }
     }
     return null;
-  })();
+  }, [messages, user?.id]);
 
   return (
     <div className="max-w-lg mx-auto flex flex-col h-[100dvh] md:h-screen">
@@ -109,23 +149,39 @@ export default function ChatView() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           {otherUser && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={otherUser.avatar_url || undefined} />
                 <AvatarFallback className="bg-secondary text-xs">
                   {(otherUser.username || "U")[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col">
+              <div className="flex flex-col flex-1">
                 <span className="text-sm font-semibold leading-tight">{otherUser.display_name || otherUser.username}</span>
                 {othersTyping.length > 0 && (
                   <span className="text-[11px] text-primary animate-pulse">typing...</span>
                 )}
               </div>
+              {canEncrypt && (
+                <div className="flex items-center gap-1 text-emerald-500">
+                  <Lock className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-medium">E2E</span>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Encryption notice */}
+      {canEncrypt && (
+        <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-1.5 text-center">
+          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
+            <Lock className="h-3 w-3" />
+            Messages are end-to-end encrypted
+          </p>
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
@@ -171,8 +227,11 @@ export default function ChatView() {
                         : "bg-secondary text-secondary-foreground rounded-bl-md"
                     )}
                   >
-                    <p className="text-sm break-words">{msg.content}</p>
+                    <p className="text-sm break-words">{getDisplayContent(msg)}</p>
                     <div className={cn("flex items-center gap-1 justify-end mt-0.5")}>
+                      {msg.is_encrypted && (
+                        <Lock className={cn("h-2.5 w-2.5", isOwn ? "text-primary-foreground/50" : "text-muted-foreground/50")} />
+                      )}
                       <span className={cn("text-[10px]", isOwn ? "text-primary-foreground/60" : "text-muted-foreground")}>
                         {formatMessageTime(msg.created_at)}
                       </span>
@@ -185,7 +244,6 @@ export default function ChatView() {
                       )}
                     </div>
                   </div>
-                  {/* Read receipt label on last read own message */}
                   {isOwn && isLastOwnInGroup && msg.id === lastReadMessageId && (
                     <span className="text-[10px] text-muted-foreground mr-1">Read</span>
                   )}
@@ -222,7 +280,7 @@ export default function ChatView() {
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             onBlur={() => setTyping(false)}
-            placeholder="Message..."
+            placeholder={canEncrypt ? "Encrypted message..." : "Message..."}
             className="flex-1 bg-secondary border-border/50 rounded-full"
           />
           <Button

@@ -16,6 +16,7 @@ export interface ConversationWithDetails {
     content: string;
     created_at: string;
     sender_id: string;
+    is_encrypted: boolean;
   } | null;
   unread_count: number;
 }
@@ -26,6 +27,7 @@ export interface MessageWithSender {
   sender_id: string;
   created_at: string;
   read_at: string | null;
+  is_encrypted: boolean;
   sender_profile: {
     username: string | null;
     avatar_url: string | null;
@@ -53,7 +55,7 @@ export function useConversations() {
       const [convsRes, allParticipantsRes, messagesRes] = await Promise.all([
         supabase.from("conversations").select("*").in("id", convIds).order("updated_at", { ascending: false }),
         supabase.from("conversation_participants").select("conversation_id, user_id").in("conversation_id", convIds),
-        supabase.from("messages").select("conversation_id, content, created_at, sender_id, read_at").in("conversation_id", convIds).order("created_at", { ascending: false }),
+        supabase.from("messages").select("conversation_id, content, created_at, sender_id, read_at, is_encrypted").in("conversation_id", convIds).order("created_at", { ascending: false }),
       ]);
 
       const otherUserIds = new Set<string>();
@@ -73,12 +75,12 @@ export function useConversations() {
         if (p.user_id !== user.id) convOtherUser.set(p.conversation_id, p.user_id);
       });
 
-      const lastMessageMap = new Map<string, { content: string; created_at: string; sender_id: string }>();
+      const lastMessageMap = new Map<string, { content: string; created_at: string; sender_id: string; is_encrypted: boolean }>();
       const unreadMap = new Map<string, number>();
 
       messagesRes.data?.forEach((m) => {
         if (!lastMessageMap.has(m.conversation_id)) {
-          lastMessageMap.set(m.conversation_id, { content: m.content, created_at: m.created_at, sender_id: m.sender_id });
+          lastMessageMap.set(m.conversation_id, { content: m.content, created_at: m.created_at, sender_id: m.sender_id, is_encrypted: m.is_encrypted });
         }
         if (m.sender_id !== user.id && !m.read_at) {
           unreadMap.set(m.conversation_id, (unreadMap.get(m.conversation_id) || 0) + 1);
@@ -137,6 +139,7 @@ export function useMessages(conversationId: string | null) {
         sender_id: m.sender_id,
         created_at: m.created_at,
         read_at: m.read_at,
+        is_encrypted: m.is_encrypted,
         sender_profile: profileMap.get(m.sender_id) || { username: null, avatar_url: null },
       }));
     },
@@ -177,13 +180,14 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ conversationId, content }: { conversationId: string; content: string }) => {
+    mutationFn: async ({ conversationId, content, isEncrypted = false }: { conversationId: string; content: string; isEncrypted?: boolean }) => {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_id: user.id,
         content,
+        is_encrypted: isEncrypted,
       });
       if (error) throw error;
 
@@ -262,7 +266,6 @@ export function useTypingIndicator(conversationId: string | null) {
       if (!channelRef.current) return;
       channelRef.current.track({ typing: isTyping });
 
-      // Auto-clear typing after 3s
       clearTimeout(typingTimeoutRef.current);
       if (isTyping) {
         typingTimeoutRef.current = window.setTimeout(() => {
