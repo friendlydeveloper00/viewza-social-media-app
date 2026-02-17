@@ -27,7 +27,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         <div className="p-6">
           <Link to="/" className="flex items-center gap-2 group">
             <Flame className="h-7 w-7 text-primary group-hover:scale-110 transition-transform" />
-            <span className="text-xl font-bold tracking-tight text-glow">REDVIBE</span>
+            <span className="text-xl font-bold tracking-tight text-glow">VIEWZA</span>
           </Link>
         </div>
 

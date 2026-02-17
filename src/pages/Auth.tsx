@@ -43,7 +43,7 @@ export default function Auth() {
         const parsed = signupSchema.parse({ email, password, username });
         const { error } = await signUp(parsed.email, parsed.password, parsed.username);
         if (error) throw error;
-        toast({ title: "Account created!", description: "Welcome to REDVIBE." });
+        toast({ title: "Account created!", description: "Welcome to Viewza." });
         navigate("/");
       }
     } catch (err: any) {
@@ -78,16 +78,16 @@ export default function Auth() {
             className="inline-flex items-center gap-2 mb-4"
           >
             <Flame className="h-10 w-10 text-primary" />
-            <h1 className="text-4xl font-bold tracking-tight text-glow">REDVIBE</h1>
+            <h1 className="text-4xl font-bold tracking-tight text-glow">VIEWZA</h1>
           </motion.div>
-          <p className="text-muted-foreground">Share your vibe with the world</p>
+          <p className="text-muted-foreground">See the world your way</p>
         </div>
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center pb-4">
             <CardTitle>{isLogin ? "Welcome back" : "Create account"}</CardTitle>
             <CardDescription>
-              {isLogin ? "Sign in to your account" : "Join the REDVIBE community"}
+              {isLogin ? "Sign in to your account" : "Join the Viewza community"}
             </CardDescription>
           </CardHeader>
           <CardContent>

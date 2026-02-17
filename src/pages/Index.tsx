@@ -13,7 +13,7 @@ export default function Index() {
       <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-3">
         <div className="flex items-center gap-2">
           <Flame className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold tracking-tight text-glow">REDVIBE</span>
+          <span className="text-lg font-bold tracking-tight text-glow">VIEWZA</span>
         </div>
       </div>
 
