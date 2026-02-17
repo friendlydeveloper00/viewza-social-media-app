@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Check, CheckCheck } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useMessages, useSendMessage } from "@/hooks/use-messages";
+import { useMessages, useSendMessage, useMarkMessagesRead, useTypingIndicator } from "@/hooks/use-messages";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +25,8 @@ export default function ChatView() {
   const { user } = useAuth();
   const { data: messages = [], isLoading } = useMessages(conversationId || null);
   const sendMessage = useSendMessage();
+  const markRead = useMarkMessagesRead();
+  const { othersTyping, setTyping } = useTypingIndicator(conversationId || null);
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -57,10 +59,26 @@ export default function ChatView() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, othersTyping]);
+
+  // Mark messages as read when viewing conversation
+  useEffect(() => {
+    if (conversationId && messages.length > 0) {
+      const hasUnread = messages.some((m) => m.sender_id !== user?.id && !m.read_at);
+      if (hasUnread) {
+        markRead(conversationId);
+      }
+    }
+  }, [conversationId, messages, user?.id, markRead]);
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setText(e.target.value);
+    setTyping(e.target.value.length > 0);
+  };
 
   const handleSend = () => {
     if (!text.trim() || !conversationId) return;
+    setTyping(false);
     sendMessage.mutate({ conversationId, content: text.trim() });
     setText("");
   };
@@ -71,6 +89,16 @@ export default function ChatView() {
       handleSend();
     }
   };
+
+  // Find the last own message that was read by the other user
+  const lastReadMessageId = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].sender_id === user?.id && messages[i].read_at) {
+        return messages[i].id;
+      }
+    }
+    return null;
+  })();
 
   return (
     <div className="max-w-lg mx-auto flex flex-col h-[100dvh] md:h-screen">
@@ -88,7 +116,12 @@ export default function ChatView() {
                   {(otherUser.username || "U")[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-semibold">{otherUser.display_name || otherUser.username}</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold leading-tight">{otherUser.display_name || otherUser.username}</span>
+                {othersTyping.length > 0 && (
+                  <span className="text-[11px] text-primary animate-pulse">typing...</span>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -108,6 +141,7 @@ export default function ChatView() {
           messages.map((msg, i) => {
             const isOwn = msg.sender_id === user?.id;
             const showAvatar = !isOwn && (i === 0 || messages[i - 1].sender_id !== msg.sender_id);
+            const isLastOwnInGroup = isOwn && (i === messages.length - 1 || messages[i + 1].sender_id !== user?.id);
 
             return (
               <motion.div
@@ -128,22 +162,55 @@ export default function ChatView() {
                     )}
                   </div>
                 )}
-                <div
-                  className={cn(
-                    "max-w-[75%] px-3 py-2 rounded-2xl",
-                    isOwn
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-secondary text-secondary-foreground rounded-bl-md"
+                <div className="flex flex-col items-end gap-0.5">
+                  <div
+                    className={cn(
+                      "max-w-[75%] px-3 py-2 rounded-2xl",
+                      isOwn
+                        ? "bg-primary text-primary-foreground rounded-br-md"
+                        : "bg-secondary text-secondary-foreground rounded-bl-md"
+                    )}
+                  >
+                    <p className="text-sm break-words">{msg.content}</p>
+                    <div className={cn("flex items-center gap-1 justify-end mt-0.5")}>
+                      <span className={cn("text-[10px]", isOwn ? "text-primary-foreground/60" : "text-muted-foreground")}>
+                        {formatMessageTime(msg.created_at)}
+                      </span>
+                      {isOwn && (
+                        msg.read_at ? (
+                          <CheckCheck className="h-3 w-3 text-primary-foreground/80" />
+                        ) : (
+                          <Check className="h-3 w-3 text-primary-foreground/50" />
+                        )
+                      )}
+                    </div>
+                  </div>
+                  {/* Read receipt label on last read own message */}
+                  {isOwn && isLastOwnInGroup && msg.id === lastReadMessageId && (
+                    <span className="text-[10px] text-muted-foreground mr-1">Read</span>
                   )}
-                >
-                  <p className="text-sm break-words">{msg.content}</p>
-                  <p className={cn("text-[10px] mt-0.5", isOwn ? "text-primary-foreground/60" : "text-muted-foreground")}>
-                    {formatMessageTime(msg.created_at)}
-                  </p>
                 </div>
               </motion.div>
             );
           })
+        )}
+
+        {/* Typing indicator bubble */}
+        {othersTyping.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex gap-2 justify-start"
+          >
+            <div className="w-7 flex-shrink-0" />
+            <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-3">
+              <div className="flex gap-1">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          </motion.div>
         )}
       </div>
 
@@ -152,8 +219,9 @@ export default function ChatView() {
         <div className="flex items-center gap-2">
           <Input
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
             onKeyDown={handleKeyDown}
+            onBlur={() => setTyping(false)}
             placeholder="Message..."
             className="flex-1 bg-secondary border-border/50 rounded-full"
           />
