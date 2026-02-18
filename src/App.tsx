@@ -14,6 +14,7 @@ import Reels from "@/pages/Reels";
 import Messages from "@/pages/Messages";
 import ChatView from "@/pages/ChatView";
 import Settings from "@/pages/Settings";
+import Notifications from "@/pages/Notifications";
 import NotFound from "@/pages/NotFound";
 import { ReactNode } from "react";
 
@@ -51,7 +52,7 @@ const App = () => (
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/messages/:conversationId" element={<ProtectedRoute><ChatView /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><div className="p-8 text-center text-muted-foreground">Notifications — Coming Soon</div></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
