@@ -287,38 +287,12 @@ export function useStartConversation() {
     mutationFn: async (otherUserId: string): Promise<string> => {
       if (!user) throw new Error("Not authenticated");
 
-      const { data: myParticipations } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", user.id);
+      const { data, error } = await supabase.rpc("create_conversation_with_participants", {
+        other_user_id: otherUserId,
+      });
 
-      if (myParticipations?.length) {
-        const convIds = myParticipations.map((p) => p.conversation_id);
-        const { data: otherParticipations } = await supabase
-          .from("conversation_participants")
-          .select("conversation_id")
-          .eq("user_id", otherUserId)
-          .in("conversation_id", convIds);
-
-        if (otherParticipations?.length) {
-          return otherParticipations[0].conversation_id;
-        }
-      }
-
-      const { data: conv, error: convErr } = await supabase
-        .from("conversations")
-        .insert({})
-        .select("id")
-        .single();
-      if (convErr) throw convErr;
-
-      const { error: pErr } = await supabase.from("conversation_participants").insert([
-        { conversation_id: conv.id, user_id: user.id },
-        { conversation_id: conv.id, user_id: otherUserId },
-      ]);
-      if (pErr) throw pErr;
-
-      return conv.id;
+      if (error) throw error;
+      return data as string;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
