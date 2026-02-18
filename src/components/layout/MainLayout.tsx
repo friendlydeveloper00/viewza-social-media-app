@@ -5,6 +5,7 @@ import { Home, Search, PlusSquare, Heart, User, Flame, LogOut, Film, MessageCirc
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useUnreadNotificationCount } from "@/hooks/use-notifications";
 
 const navItems = [
   { path: "/", icon: Home, label: "Home" },
@@ -20,6 +21,7 @@ const navItems = [
 export default function MainLayout({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
   const location = useLocation();
+  const { data: unreadCount = 0 } = useUnreadNotificationCount();
 
   return (
     <div className="min-h-screen flex">
@@ -35,18 +37,26 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         <nav className="flex-1 px-3 space-y-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const showBadge = item.path === "/notifications" && unreadCount > 0;
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 relative",
                   isActive
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )}
               >
-                <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                <div className="relative">
+                  <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                  {showBadge && (
+                    <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </div>
                 {item.label}
                 {isActive && (
                   <motion.div
@@ -82,16 +92,24 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const showBadge = item.path === "/notifications" && unreadCount > 0;
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors",
+                  "flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors relative",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <div className="relative">
+                  <item.icon className="h-5 w-5" />
+                  {showBadge && (
+                    <span className="absolute -top-1.5 -right-2 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px]">{item.label}</span>
               </Link>
             );
