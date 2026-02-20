@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Trash2, Grid3X3, Film, Clock, AlertTriangle } from "lucide-react";
+import { Trash2, Grid3X3, Film, Clock, AlertTriangle, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -237,6 +238,52 @@ function ContentGrid({
   );
 }
 
+function PushNotificationCard() {
+  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe } = usePushNotifications();
+
+  if (!isSupported) return null;
+
+  const handleToggle = async () => {
+    if (isSubscribed) {
+      const ok = await unsubscribe();
+      if (ok) toast({ title: "Push notifications disabled" });
+    } else {
+      const ok = await subscribe();
+      if (ok) {
+        toast({ title: "Push notifications enabled!", description: "You'll now receive alerts even when the app is in the background." });
+      } else if (permission === "denied") {
+        toast({ title: "Permission denied", description: "Please enable notifications in your browser settings.", variant: "destructive" });
+      }
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <div>
+          <CardTitle className="text-base flex items-center gap-2">
+            {isSubscribed ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-muted-foreground" />}
+            Push Notifications
+          </CardTitle>
+          <CardDescription>
+            {isSubscribed
+              ? "You'll receive alerts even when the app is closed"
+              : "Get notified about likes, comments, and follows"}
+          </CardDescription>
+        </div>
+        <Button
+          variant={isSubscribed ? "outline" : "default"}
+          size="sm"
+          onClick={handleToggle}
+          disabled={isLoading}
+        >
+          {isLoading ? "..." : isSubscribed ? "Disable" : "Enable"}
+        </Button>
+      </CardHeader>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { data: posts = [], isLoading: postsLoading } = useUserPosts();
   const { data: reels = [], isLoading: reelsLoading } = useUserReels();
@@ -281,7 +328,11 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold mb-1">Settings</h1>
-        <p className="text-muted-foreground text-sm mb-6">Manage your content</p>
+        <p className="text-muted-foreground text-sm mb-6">Manage your content & notifications</p>
+
+        <PushNotificationCard />
+
+        <div className="mt-6" />
 
         <Tabs defaultValue="posts">
           <TabsList className="w-full">
