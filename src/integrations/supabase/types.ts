@@ -385,6 +385,57 @@ export type Database = {
         }
         Relationships: []
       }
+      push_config: {
+        Row: {
+          created_at: string | null
+          id: string
+          vapid_private_key: string
+          vapid_public_key: string
+          vapid_subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          vapid_private_key: string
+          vapid_public_key: string
+          vapid_subject?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          vapid_private_key?: string
+          vapid_public_key?: string
+          vapid_subject?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string | null
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           caption: string | null
