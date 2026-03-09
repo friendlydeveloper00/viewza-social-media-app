@@ -75,11 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const verifyOtp = async (token: string, type: "email" | "sms", emailOrPhone: string) => {
-    const { error } = await supabase.auth.verifyOtp({
-      token,
-      type: type === "email" ? "email" : "sms",
-      ...(type === "email" ? { email: emailOrPhone } : { phone: emailOrPhone }),
-    });
+    let params: any;
+    if (type === "email") {
+      params = { token, type: "email" as const, email: emailOrPhone };
+    } else {
+      params = { token, type: "sms" as const, phone: emailOrPhone };
+    }
+    const { error } = await supabase.auth.verifyOtp(params);
     return { error: error as Error | null };
   };
 
