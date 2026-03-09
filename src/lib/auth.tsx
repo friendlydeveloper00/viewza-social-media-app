@@ -8,6 +8,9 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithEmailOtp: (email: string) => Promise<{ error: Error | null }>;
+  signInWithPhoneOtp: (phone: string) => Promise<{ error: Error | null }>;
+  verifyOtp: (token: string, type: "email" | "sms", emailOrPhone: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -51,12 +54,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
+  const signInWithEmailOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+    return { error: error as Error | null };
+  };
+
+  const signInWithPhoneOtp = async (phone: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+    return { error: error as Error | null };
+  };
+
+  const verifyOtp = async (token: string, type: "email" | "sms", emailOrPhone: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      token,
+      type: type === "email" ? "email" : "sms",
+      ...(type === "email" ? { email: emailOrPhone } : { phone: emailOrPhone }),
+    });
+    return { error: error as Error | null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signInWithEmailOtp, signInWithPhoneOtp, verifyOtp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
