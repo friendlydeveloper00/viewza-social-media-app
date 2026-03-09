@@ -206,13 +206,26 @@ Deno.serve(async (req: Request) => {
           const audience = `${subUrl.protocol}//${subUrl.host}`;
           const jwt = await createJwt(vapid.privateKey, vapid.publicKey, audience, vapid.subject);
 
+          const pushPayload = JSON.stringify({
+            title: actorName,
+            body: message,
+            icon: "/favicon.ico",
+            badge: "/favicon.ico",
+            tag: `viewza-${type}-${Date.now()}`,
+            url: type === "follow" ? `/profile/${actor_id}` : type === "message" ? "/messages" : "/notifications",
+            type,
+          });
+          const payloadBytes = new TextEncoder().encode(pushPayload);
+
           const res = await fetch(sub.endpoint, {
             method: "POST",
             headers: {
               Authorization: `vapid t=${jwt}, k=${vapid.publicKey}`,
-              "Content-Length": "0",
+              "Content-Type": "application/octet-stream",
+              "Content-Length": String(payloadBytes.byteLength),
               TTL: "86400",
             },
+            body: payloadBytes,
           });
 
           if (res.status === 201 || res.status === 200) sent++;
