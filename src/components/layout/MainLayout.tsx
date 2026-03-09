@@ -89,7 +89,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-md border-t border-border/50 z-50">
-        <div className="flex items-center justify-around py-2">
+        <div className="flex items-center overflow-x-auto scrollbar-hide py-2 px-1 gap-1" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const showBadge = item.path === "/notifications" && unreadCount > 0;
@@ -98,7 +98,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors relative",
+                  "flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors relative flex-shrink-0 min-w-[3.5rem]",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
