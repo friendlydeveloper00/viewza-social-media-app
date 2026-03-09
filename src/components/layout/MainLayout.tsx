@@ -98,7 +98,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors relative",
+                  "flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors relative flex-shrink-0 min-w-[3.5rem]",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
