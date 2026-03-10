@@ -360,7 +360,6 @@ export default function Auth() {
                     )}
                   </form>
 
-                  {/* Forgot Password Modal */}
                   {showForgot && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -387,7 +386,7 @@ export default function Auth() {
                         </div>
                       </form>
                     </motion.div>
-                  )
+                  )}
                 </motion.div>
               )}
 
