@@ -41,7 +41,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 px-3 space-y-1">
-          {navItems.map((item) => {
+          {allNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             const showBadge = item.path === "/notifications" && unreadCount > 0;
             return (
