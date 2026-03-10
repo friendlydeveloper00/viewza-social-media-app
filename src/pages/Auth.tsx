@@ -349,7 +349,45 @@ export default function Auth() {
                       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       {isLogin ? "Sign In" : "Create Account"}
                     </Button>
+                    {isLogin && (
+                      <button
+                        type="button"
+                        onClick={() => setShowForgot(true)}
+                        className="w-full text-sm text-muted-foreground hover:text-primary transition-colors mt-2"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
                   </form>
+
+                  {/* Forgot Password Modal */}
+                  {showForgot && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 p-4 rounded-lg bg-secondary/50 border border-border/50"
+                    >
+                      <form onSubmit={handleForgotPassword} className="space-y-3">
+                        <p className="text-sm font-medium">Reset your password</p>
+                        <Input
+                          type="email"
+                          placeholder="Enter your email"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          className="bg-background/50"
+                        />
+                        <div className="flex gap-2">
+                          <Button type="submit" size="sm" className="flex-1" disabled={isLoading}>
+                            {isLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Send reset link
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setShowForgot(false)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  )
                 </motion.div>
               )}
 
