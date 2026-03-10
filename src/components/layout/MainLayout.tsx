@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { Home, Search, PlusSquare, Heart, User, Flame, LogOut, Film, MessageCircle, Settings } from "lucide-react";
+import { useAdmin } from "@/hooks/use-admin";
+import { Home, Search, PlusSquare, Heart, User, Flame, LogOut, Film, MessageCircle, Settings, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,8 +21,13 @@ const navItems = [
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const location = useLocation();
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
+
+  const allNavItems = isAdmin
+    ? [...navItems, { path: "/admin", icon: Shield, label: "Admin" }]
+    : navItems;
 
   return (
     <div className="min-h-screen flex">
@@ -35,7 +41,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 px-3 space-y-1">
-          {navItems.map((item) => {
+          {allNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             const showBadge = item.path === "/notifications" && unreadCount > 0;
             return (
@@ -90,7 +96,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-md border-t border-border/50 z-50">
         <div className="flex items-center overflow-x-auto scrollbar-hide py-2 px-1 gap-1" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
-          {navItems.map((item) => {
+          {allNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             const showBadge = item.path === "/notifications" && unreadCount > 0;
             return (
