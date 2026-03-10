@@ -21,8 +21,13 @@ const navItems = [
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const location = useLocation();
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
+
+  const allNavItems = isAdmin
+    ? [...navItems, { path: "/admin", icon: Shield, label: "Admin" }]
+    : navItems;
 
   return (
     <div className="min-h-screen flex">
