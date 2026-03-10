@@ -15,6 +15,7 @@ import Messages from "@/pages/Messages";
 import ChatView from "@/pages/ChatView";
 import Settings from "@/pages/Settings";
 import Notifications from "@/pages/Notifications";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 import { ReactNode } from "react";
 
