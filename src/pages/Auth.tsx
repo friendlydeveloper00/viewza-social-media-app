@@ -52,6 +52,27 @@ export default function Auth() {
   const { signIn, signUp, signInWithEmailOtp, signInWithPhoneOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
 
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const parsed = emailOtpSchema.parse({ email: forgotEmail });
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: "Reset link sent!", description: `Check your inbox at ${parsed.email}` });
+      setShowForgot(false);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || err.errors?.[0]?.message || "Something went wrong", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
