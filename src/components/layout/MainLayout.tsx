@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { Home, Search, PlusSquare, Heart, User, Flame, LogOut, Film, MessageCircle, Settings } from "lucide-react";
+import { useAdmin } from "@/hooks/use-admin";
+import { Home, Search, PlusSquare, Heart, User, Flame, LogOut, Film, MessageCircle, Settings, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
