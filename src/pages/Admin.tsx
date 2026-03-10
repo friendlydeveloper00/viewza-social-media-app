@@ -350,7 +350,7 @@ function DatabaseTab() {
   const fetchRows = async (table: string) => {
     setLoading(true);
     setSelectedTable(table);
-    const { data } = await supabase.from(table).select("*").order("created_at", { ascending: false }).limit(50);
+    const { data } = await (supabase.from(table as any) as any).select("*").order("created_at", { ascending: false }).limit(50);
     setRows(data || []);
     setLoading(false);
   };
