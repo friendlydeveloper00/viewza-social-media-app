@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,27 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, signInWithEmailOtp, signInWithPhoneOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
+
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const parsed = emailOtpSchema.parse({ email: forgotEmail });
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: "Reset link sent!", description: `Check your inbox at ${parsed.email}` });
+      setShowForgot(false);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || err.errors?.[0]?.message || "Something went wrong", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,7 +349,44 @@ export default function Auth() {
                       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       {isLogin ? "Sign In" : "Create Account"}
                     </Button>
+                    {isLogin && (
+                      <button
+                        type="button"
+                        onClick={() => setShowForgot(true)}
+                        className="w-full text-sm text-muted-foreground hover:text-primary transition-colors mt-2"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
                   </form>
+
+                  {showForgot && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 p-4 rounded-lg bg-secondary/50 border border-border/50"
+                    >
+                      <form onSubmit={handleForgotPassword} className="space-y-3">
+                        <p className="text-sm font-medium">Reset your password</p>
+                        <Input
+                          type="email"
+                          placeholder="Enter your email"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          className="bg-background/50"
+                        />
+                        <div className="flex gap-2">
+                          <Button type="submit" size="sm" className="flex-1" disabled={isLoading}>
+                            {isLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Send reset link
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setShowForgot(false)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
 
