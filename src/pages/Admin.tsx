@@ -13,8 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import {
   Shield, Users, FileText, BarChart3, Settings, Code,
-  Loader2, Trash2, Ban, Search, RefreshCw, Bell, Flag,
-  Database, ToggleLeft, Terminal, ArrowLeft,
+  Loader2, Trash2, Search, RefreshCw, Bell, Database,
+  ToggleLeft, Terminal, ArrowLeft, Plus,
 } from "lucide-react";
 
 interface ProfileRow {
@@ -38,9 +38,15 @@ interface TableInfo {
   count: number;
 }
 
+interface FeatureFlag {
+  id: string;
+  key: string;
+  enabled: boolean;
+  description: string | null;
+}
+
 export default function Admin() {
   const { isAdmin, loading: adminLoading } = useAdmin();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   if (adminLoading) {
@@ -301,39 +307,110 @@ function AnalyticsTab() {
   );
 }
 
-// ─── Feature Flags Tab ───────────────────────────────────────
+// ─── Feature Flags Tab (DB-backed) ───────────────────────────
 function FeatureFlagsTab() {
-  const [flags, setFlags] = useState<{ name: string; enabled: boolean; description: string }[]>([
-    { name: "dark_mode_only", enabled: true, description: "Force dark mode for all users" },
-    { name: "stories_enabled", enabled: true, description: "Enable stories feature" },
-    { name: "reels_enabled", enabled: true, description: "Enable reels feature" },
-    { name: "push_notifications", enabled: false, description: "Enable push notification sending" },
-    { name: "maintenance_mode", enabled: false, description: "Show maintenance page to non-admins" },
-  ]);
+  const [flags, setFlags] = useState<FeatureFlag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newKey, setNewKey] = useState("");
+  const [newDesc, setNewDesc] = useState("");
 
-  const toggleFlag = (name: string) => {
-    setFlags(prev => prev.map(f => f.name === name ? { ...f, enabled: !f.enabled } : f));
-    toast({ title: "Flag updated", description: `${name} toggled` });
+  const fetchFlags = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("feature_flags" as any)
+      .select("*")
+      .order("created_at", { ascending: true });
+    setFlags((data as unknown as FeatureFlag[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchFlags(); }, []);
+
+  const toggleFlag = async (id: string, currentEnabled: boolean) => {
+    const { error } = await (supabase.from("feature_flags" as any) as any)
+      .update({ enabled: !currentEnabled, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setFlags(prev => prev.map(f => f.id === id ? { ...f, enabled: !currentEnabled } : f));
+      toast({ title: "Flag updated" });
+    }
+  };
+
+  const addFlag = async () => {
+    if (!newKey.trim()) return;
+    const { error } = await (supabase.from("feature_flags" as any) as any)
+      .insert({ key: newKey.trim().toLowerCase().replace(/\s+/g, "_"), description: newDesc.trim() || null, enabled: false });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setNewKey("");
+      setNewDesc("");
+      fetchFlags();
+      toast({ title: "Flag created" });
+    }
+  };
+
+  const deleteFlag = async (id: string) => {
+    if (!confirm("Delete this feature flag?")) return;
+    const { error } = await (supabase.from("feature_flags" as any) as any).delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      fetchFlags();
+      toast({ title: "Flag deleted" });
+    }
   };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><ToggleLeft className="h-5 w-5" /> Feature Flags</CardTitle>
-        <CardDescription>Toggle features without redeploying. Flags are stored locally until the database migration completes.</CardDescription>
+        <CardDescription>Toggle features without redeploying. Persisted in the database.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {flags.map(f => (
-            <div key={f.name} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
-              <div>
-                <p className="font-medium text-sm">{f.name}</p>
-                <p className="text-xs text-muted-foreground">{f.description}</p>
-              </div>
-              <Switch checked={f.enabled} onCheckedChange={() => toggleFlag(f.name)} />
-            </div>
-          ))}
+      <CardContent className="space-y-4">
+        {/* Add new flag */}
+        <div className="flex gap-2">
+          <Input
+            placeholder="Flag key (e.g. dark_mode)"
+            value={newKey}
+            onChange={e => setNewKey(e.target.value)}
+            className="bg-secondary/50 flex-1"
+          />
+          <Input
+            placeholder="Description (optional)"
+            value={newDesc}
+            onChange={e => setNewDesc(e.target.value)}
+            className="bg-secondary/50 flex-1"
+          />
+          <Button size="sm" onClick={addFlag} disabled={!newKey.trim()}>
+            <Plus className="h-4 w-4 mr-1" /> Add
+          </Button>
         </div>
+
+        {loading ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        ) : flags.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No feature flags yet. Add one above.</p>
+        ) : (
+          <div className="space-y-3">
+            {flags.map(f => (
+              <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm">{f.key}</p>
+                  {f.description && <p className="text-xs text-muted-foreground">{f.description}</p>}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Switch checked={f.enabled} onCheckedChange={() => toggleFlag(f.id, f.enabled)} />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteFlag(f.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -345,7 +422,7 @@ function DatabaseTab() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const tables = ["profiles", "posts", "comments", "likes", "stories", "follows", "conversations", "messages", "notifications", "post_media", "hashtags", "post_hashtags", "push_subscriptions"] as const;
+  const tables = ["profiles", "posts", "comments", "likes", "stories", "follows", "conversations", "messages", "notifications", "post_media", "hashtags", "post_hashtags", "push_subscriptions", "feature_flags", "user_roles"] as const;
 
   const fetchRows = async (table: string) => {
     setLoading(true);
@@ -391,6 +468,7 @@ function DatabaseTab() {
                     {row.id ? `${row.id.slice(0, 8)}...` : `Row ${i + 1}`}
                     {row.username && <span className="ml-2 text-muted-foreground">@{row.username}</span>}
                     {row.caption && <span className="ml-2 text-muted-foreground truncate">{row.caption?.slice(0, 40)}</span>}
+                    {row.key && <span className="ml-2 text-muted-foreground">{row.key}</span>}
                   </summary>
                   <pre className="mt-2 text-xs text-muted-foreground overflow-x-auto whitespace-pre-wrap break-all">
                     {JSON.stringify(row, null, 2)}
