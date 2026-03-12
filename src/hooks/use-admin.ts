@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
-const ADMIN_EMAIL = "riazriyan80@gmail.com";
-
 export function useAdmin() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -16,14 +14,6 @@ export function useAdmin() {
       return;
     }
 
-    // Check by email first (fallback if roles table doesn't exist yet)
-    if (user.email === ADMIN_EMAIL) {
-      setIsAdmin(true);
-      setLoading(false);
-      return;
-    }
-
-    // Check user_roles table
     const checkRole = async () => {
       try {
         const { data, error } = await supabase
@@ -35,8 +25,7 @@ export function useAdmin() {
 
         setIsAdmin(!!data && !error);
       } catch {
-        // Table might not exist yet, fall back to email check
-        setIsAdmin(user.email === ADMIN_EMAIL);
+        setIsAdmin(false);
       } finally {
         setLoading(false);
       }
