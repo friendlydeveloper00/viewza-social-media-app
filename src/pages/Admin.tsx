@@ -320,7 +320,7 @@ function FeatureFlagsTab() {
       .from("feature_flags" as any)
       .select("*")
       .order("created_at", { ascending: true });
-    setFlags((data as FeatureFlag[]) || []);
+    setFlags((data as unknown as FeatureFlag[]) || []);
     setLoading(false);
   };
 
