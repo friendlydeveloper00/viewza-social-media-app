@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Trash2, Grid3X3, Film, Clock, AlertTriangle, Bell, BellOff } from "lucide-react";
+import { Trash2, Grid3X3, Film, Clock, AlertTriangle, Bell, BellOff, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -285,6 +285,7 @@ function PushNotificationCard() {
 }
 
 export default function Settings() {
+  const { signOut } = useAuth();
   const { data: posts = [], isLoading: postsLoading } = useUserPosts();
   const { data: reels = [], isLoading: reelsLoading } = useUserReels();
   const { data: stories = [], isLoading: storiesLoading } = useUserStories();
@@ -331,6 +332,21 @@ export default function Settings() {
         <p className="text-muted-foreground text-sm mb-6">Manage your content & notifications</p>
 
         <PushNotificationCard />
+
+        <Card className="mt-4">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <LogOut className="h-4 w-4 text-destructive" />
+                Sign Out
+              </CardTitle>
+              <CardDescription>Log out of your account</CardDescription>
+            </div>
+            <Button variant="destructive" size="sm" onClick={signOut}>
+              Sign Out
+            </Button>
+          </CardHeader>
+        </Card>
 
         <div className="mt-6" />
 
