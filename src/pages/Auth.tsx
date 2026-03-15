@@ -226,14 +226,18 @@ export default function Auth() {
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center pb-4">
             <CardTitle>
-              {authStep === "verify"
+              {pendingVerification
+                ? "Verify your email"
+                : authStep === "verify"
                 ? "Enter verification code"
                 : isLogin
                 ? "Welcome back"
                 : "Create account"}
             </CardTitle>
             <CardDescription>
-              {authStep === "verify"
+              {pendingVerification
+                ? `We sent a verification link to ${verificationEmail}`
+                : authStep === "verify"
                 ? `We sent a 6-digit code to ${authMode === "email-otp" ? otpEmail : otpPhone}`
                 : isLogin
                 ? "Choose your sign-in method"
@@ -241,6 +245,34 @@ export default function Auth() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {pendingVerification ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4 text-center"
+              >
+                <div className="flex justify-center">
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Mail className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Please check your email and click the verification link to activate your account, then sign in.
+                </p>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setPendingVerification(false);
+                    setIsLogin(true);
+                    setAuthMode("password");
+                  }}
+                >
+                  Back to Sign In
+                </Button>
+              </motion.div>
+            ) : (
+            <>
             {/* Auth method selector */}
             {authStep === "input" && isLogin && (
               <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg mb-5">
