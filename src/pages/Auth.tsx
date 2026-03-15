@@ -50,7 +50,12 @@ export default function Auth() {
   const [otpPhone, setOtpPhone] = useState("");
   const [otpCode, setOtpCode] = useState("");
 
+  // Email verification after signup
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { signIn, signUp, signInWithEmailOtp, signInWithPhoneOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
 
