@@ -175,6 +175,22 @@ export default function Auth() {
     setOtpCode("");
   };
 
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast({ title: "Error", description: result.error.message, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Google sign-in failed", variant: "destructive" });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const modeButtons = [
     { mode: "password" as AuthMode, icon: KeyRound, label: "Password" },
     { mode: "email-otp" as AuthMode, icon: Mail, label: "Email OTP" },
