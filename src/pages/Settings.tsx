@@ -285,6 +285,7 @@ function PushNotificationCard() {
 }
 
 export default function Settings() {
+  const { signOut } = useAuth();
   const { data: posts = [], isLoading: postsLoading } = useUserPosts();
   const { data: reels = [], isLoading: reelsLoading } = useUserReels();
   const { data: stories = [], isLoading: storiesLoading } = useUserStories();
