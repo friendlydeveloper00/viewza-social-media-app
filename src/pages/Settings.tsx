@@ -333,6 +333,21 @@ export default function Settings() {
 
         <PushNotificationCard />
 
+        <Card className="mt-4">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <LogOut className="h-4 w-4 text-destructive" />
+                Sign Out
+              </CardTitle>
+              <CardDescription>Log out of your account</CardDescription>
+            </div>
+            <Button variant="destructive" size="sm" onClick={signOut}>
+              Sign Out
+            </Button>
+          </CardHeader>
+        </Card>
+
         <div className="mt-6" />
 
         <Tabs defaultValue="posts">
