@@ -93,8 +93,9 @@ export default function Auth() {
         const parsed = signupSchema.parse({ email, password, username });
         const { error } = await signUp(parsed.email, parsed.password, parsed.username);
         if (error) throw error;
-        toast({ title: "Account created!", description: "Welcome to Viewza." });
-        navigate("/");
+        toast({ title: "Verification email sent!", description: "Please check your inbox and verify your email to continue." });
+        setPendingVerification(true);
+        setVerificationEmail(parsed.email);
       }
     } catch (err: any) {
       toast({
