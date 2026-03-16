@@ -17,6 +17,7 @@ import Settings from "@/pages/Settings";
 import Notifications from "@/pages/Notifications";
 import ResetPassword from "@/pages/ResetPassword";
 import Admin from "@/pages/Admin";
+import Install from "@/pages/Install";
 import NotFound from "@/pages/NotFound";
 import { ReactNode } from "react";
 
