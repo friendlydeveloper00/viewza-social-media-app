@@ -17,6 +17,7 @@ import Settings from "@/pages/Settings";
 import Notifications from "@/pages/Notifications";
 import ResetPassword from "@/pages/ResetPassword";
 import Admin from "@/pages/Admin";
+import Install from "@/pages/Install";
 import NotFound from "@/pages/NotFound";
 import { ReactNode } from "react";
 
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
