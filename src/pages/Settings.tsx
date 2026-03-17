@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Trash2, Grid3X3, Film, Clock, AlertTriangle, Bell, BellOff, LogOut } from "lucide-react";
+import { Trash2, Grid3X3, Film, Clock, AlertTriangle, Bell, BellOff, LogOut, FileText, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
