@@ -64,7 +64,11 @@ export default function Explore() {
       )}
 
       {!isLoading && (!posts || posts.length === 0) && (
-        <p className="text-center text-muted-foreground py-16">No posts yet. Be the first to create one!</p>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 px-4">
+          <Search className="h-16 w-16 text-primary mx-auto mb-4 opacity-50" />
+          <h2 className="text-xl font-bold mb-2">Nothing to Explore Yet</h2>
+          <p className="text-muted-foreground text-sm">Be the first to create a post and it'll show up here!</p>
+        </motion.div>
       )}
     </div>
   );

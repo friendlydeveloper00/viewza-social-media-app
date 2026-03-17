@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Trash2, Grid3X3, Film, Clock, AlertTriangle, Bell, BellOff, LogOut } from "lucide-react";
+import { Trash2, Grid3X3, Film, Clock, AlertTriangle, Bell, BellOff, LogOut, FileText, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -285,6 +286,7 @@ function PushNotificationCard() {
 }
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { signOut } = useAuth();
   const { data: posts = [], isLoading: postsLoading } = useUserPosts();
   const { data: reels = [], isLoading: reelsLoading } = useUserReels();
@@ -346,6 +348,23 @@ export default function Settings() {
               Sign Out
             </Button>
           </CardHeader>
+        </Card>
+
+        <Card className="mt-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              Legal
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/terms")} className="gap-1.5">
+              <FileText className="h-3.5 w-3.5" /> Terms of Service
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/privacy")} className="gap-1.5">
+              <Shield className="h-3.5 w-3.5" /> Privacy Policy
+            </Button>
+          </CardContent>
         </Card>
 
         <div className="mt-6" />
