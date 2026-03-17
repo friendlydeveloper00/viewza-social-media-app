@@ -350,6 +350,23 @@ export default function Settings() {
           </CardHeader>
         </Card>
 
+        <Card className="mt-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              Legal
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/terms")} className="gap-1.5">
+              <FileText className="h-3.5 w-3.5" /> Terms of Service
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/privacy")} className="gap-1.5">
+              <Shield className="h-3.5 w-3.5" /> Privacy Policy
+            </Button>
+          </CardContent>
+        </Card>
+
         <div className="mt-6" />
 
         <Tabs defaultValue="posts">
