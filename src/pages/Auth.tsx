@@ -557,6 +557,12 @@ export default function Auth() {
             )}
           </CardContent>
         </Card>
+
+        <div className="flex justify-center gap-4 mt-4 text-xs text-muted-foreground">
+          <a href="/terms" className="hover:text-primary transition-colors">Terms of Service</a>
+          <span>·</span>
+          <a href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</a>
+        </div>
       </motion.div>
     </div>
   );
