@@ -38,8 +38,8 @@ export default function Explore() {
 
       {isLoading ? (
         <div className="grid grid-cols-3 gap-0.5">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-secondary animate-pulse" />
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-square rounded-none" />
           ))}
         </div>
       ) : (

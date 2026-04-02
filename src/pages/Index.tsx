@@ -3,6 +3,7 @@ import { Flame } from "lucide-react";
 import { useFeedPosts } from "@/hooks/use-posts";
 import { PostCard } from "@/components/post/PostCard";
 import StoriesBar from "@/components/stories/StoriesBar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Index() {
   const { data: posts, isLoading } = useFeedPosts();
