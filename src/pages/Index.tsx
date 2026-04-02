@@ -1,12 +1,22 @@
+import { useCallback } from "react";
 import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
 import { useFeedPosts } from "@/hooks/use-posts";
 import { PostCard } from "@/components/post/PostCard";
 import StoriesBar from "@/components/stories/StoriesBar";
 import { Skeleton } from "@/components/ui/skeleton";
+import PullToRefresh from "@/components/PullToRefresh";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 
 export default function Index() {
   const { data: posts, isLoading } = useFeedPosts();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["feed-posts", user?.id] });
+  }, [queryClient, user?.id]);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -18,49 +28,51 @@ export default function Index() {
         </div>
       </div>
 
-      {/* Stories */}
-      <div className="border-b border-border/50">
-        <StoriesBar />
-      </div>
+      <PullToRefresh onRefresh={handleRefresh}>
+        {/* Stories */}
+        <div className="border-b border-border/50">
+          <StoriesBar />
+        </div>
 
-      {isLoading ? (
-        <div className="space-y-6 p-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-9 w-9 rounded-full" />
-                <div className="space-y-1.5">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-2 w-16" />
+        {isLoading ? (
+          <div className="space-y-6 p-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-full" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-2 w-16" />
+                  </div>
+                </div>
+                <Skeleton className="aspect-square w-full rounded-lg" />
+                <div className="flex items-center gap-4 px-1">
+                  <Skeleton className="h-6 w-6 rounded" />
+                  <Skeleton className="h-6 w-6 rounded" />
+                  <Skeleton className="h-6 w-6 rounded" />
+                </div>
+                <div className="space-y-1.5 px-1">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-2.5 w-full" />
+                  <Skeleton className="h-2.5 w-3/4" />
                 </div>
               </div>
-              <Skeleton className="aspect-square w-full rounded-lg" />
-              <div className="flex items-center gap-4 px-1">
-                <Skeleton className="h-6 w-6 rounded" />
-                <Skeleton className="h-6 w-6 rounded" />
-                <Skeleton className="h-6 w-6 rounded" />
-              </div>
-              <div className="space-y-1.5 px-1">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-2.5 w-full" />
-                <Skeleton className="h-2.5 w-3/4" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : posts && posts.length > 0 ? (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </motion.div>
-      ) : (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 px-4">
-          <Flame className="h-16 w-16 text-primary mx-auto mb-4 animate-pulse" />
-          <h2 className="text-xl font-bold mb-2">Your Feed</h2>
-          <p className="text-muted-foreground">No posts yet. Create your first post or follow people to see their content!</p>
-        </motion.div>
-      )}
+            ))}
+          </div>
+        ) : posts && posts.length > 0 ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </motion.div>
+        ) : (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 px-4">
+            <Flame className="h-16 w-16 text-primary mx-auto mb-4 animate-pulse" />
+            <h2 className="text-xl font-bold mb-2">Your Feed</h2>
+            <p className="text-muted-foreground">No posts yet. Create your first post or follow people to see their content!</p>
+          </motion.div>
+        )}
+      </PullToRefresh>
     </div>
   );
 }
