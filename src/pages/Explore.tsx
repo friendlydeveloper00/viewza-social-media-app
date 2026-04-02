@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Search, Film } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 
 export default function Explore() {
@@ -37,8 +38,8 @@ export default function Explore() {
 
       {isLoading ? (
         <div className="grid grid-cols-3 gap-0.5">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-secondary animate-pulse" />
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-square rounded-none" />
           ))}
         </div>
       ) : (
