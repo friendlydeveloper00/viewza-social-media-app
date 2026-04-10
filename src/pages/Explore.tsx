@@ -1,29 +1,39 @@
-import { useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Search, Film } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import PullToRefresh from "@/components/PullToRefresh";
+import InfiniteScroll from "@/components/InfiniteScroll";
 import { useState } from "react";
+
+const EXPLORE_PAGE_SIZE = 30;
 
 export default function Explore() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: posts, isLoading } = useQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["explore-posts"],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 0 }) => {
       const { data, error } = await supabase
         .from("post_media")
         .select("id, media_url, media_type, post_id")
         .order("created_at", { ascending: false })
-        .limit(30);
+        .range(pageParam, pageParam + EXPLORE_PAGE_SIZE - 1);
       if (error) throw error;
-      return data;
+      return {
+        items: data || [],
+        nextCursor: (data?.length || 0) >= EXPLORE_PAGE_SIZE ? pageParam + EXPLORE_PAGE_SIZE : undefined,
+      };
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: 0,
   });
+
+  const posts = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
 
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["explore-posts"] });
@@ -50,29 +60,33 @@ export default function Explore() {
               <Skeleton key={i} className="aspect-square rounded-none" />
             ))}
           </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-3 gap-0.5"
+        ) : posts.length > 0 ? (
+          <InfiniteScroll
+            onLoadMore={() => fetchNextPage()}
+            hasMore={!!hasNextPage}
+            isLoading={isFetchingNextPage}
           >
-            {posts?.map((media) => (
-              <div key={media.id} className="relative aspect-square group cursor-pointer">
-                {media.media_type === "video" ? (
-                  <>
-                    <video src={media.media_url} className="w-full h-full object-cover" muted />
-                    <Film className="absolute top-2 right-2 h-4 w-4 text-foreground drop-shadow" />
-                  </>
-                ) : (
-                  <img src={media.media_url} alt="" className="w-full h-full object-cover" />
-                )}
-                <div className="absolute inset-0 bg-background/0 group-hover:bg-background/30 transition-colors" />
-              </div>
-            ))}
-          </motion.div>
-        )}
-
-        {!isLoading && (!posts || posts.length === 0) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="grid grid-cols-3 gap-0.5"
+            >
+              {posts.map((media) => (
+                <div key={media.id} className="relative aspect-square group cursor-pointer">
+                  {media.media_type === "video" ? (
+                    <>
+                      <video src={media.media_url} className="w-full h-full object-cover" muted />
+                      <Film className="absolute top-2 right-2 h-4 w-4 text-foreground drop-shadow" />
+                    </>
+                  ) : (
+                    <img src={media.media_url} alt="" className="w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-background/0 group-hover:bg-background/30 transition-colors" />
+                </div>
+              ))}
+            </motion.div>
+          </InfiniteScroll>
+        ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 px-4">
             <Search className="h-16 w-16 text-primary mx-auto mb-4 opacity-50" />
             <h2 className="text-xl font-bold mb-2">Nothing to Explore Yet</h2>
