@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -19,22 +19,62 @@ export interface PostWithDetails {
   is_liked: boolean;
 }
 
+const FEED_PAGE_SIZE = 10;
+
+async function enrichPosts(posts: { id: string; user_id: string; caption: string | null; created_at: string }[], userId: string | undefined): Promise<PostWithDetails[]> {
+  if (!posts.length) return [];
+
+  const postIds = posts.map((p) => p.id);
+  const userIds = [...new Set(posts.map((p) => p.user_id))];
+
+  const [profilesRes, mediaRes, likesRes, commentsRes, userLikesRes] = await Promise.all([
+    supabase.from("profiles").select("user_id, username, display_name, avatar_url").in("user_id", userIds),
+    supabase.from("post_media").select("id, post_id, media_url, media_type, sort_order").in("post_id", postIds).order("sort_order"),
+    supabase.from("likes").select("post_id").in("post_id", postIds),
+    supabase.from("comments").select("post_id").in("post_id", postIds),
+    userId ? supabase.from("likes").select("post_id").eq("user_id", userId).in("post_id", postIds) : Promise.resolve({ data: [] }),
+  ]);
+
+  const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, p]));
+  const mediaByPost = new Map<string, typeof mediaRes.data>();
+  mediaRes.data?.forEach((m) => {
+    const arr = mediaByPost.get(m.post_id) || [];
+    arr.push(m);
+    mediaByPost.set(m.post_id, arr);
+  });
+
+  const likesCount = new Map<string, number>();
+  likesRes.data?.forEach((l) => likesCount.set(l.post_id, (likesCount.get(l.post_id) || 0) + 1));
+
+  const commentsCount = new Map<string, number>();
+  commentsRes.data?.forEach((c) => commentsCount.set(c.post_id, (commentsCount.get(c.post_id) || 0) + 1));
+
+  const userLikedSet = new Set(userLikesRes.data?.map((l) => l.post_id));
+
+  return posts.map((post): PostWithDetails => ({
+    ...post,
+    profile: profileMap.get(post.user_id) || { username: null, display_name: null, avatar_url: null },
+    media: mediaByPost.get(post.id) || [],
+    likes_count: likesCount.get(post.id) || 0,
+    comments_count: commentsCount.get(post.id) || 0,
+    is_liked: userLikedSet.has(post.id),
+  }));
+}
+
 export function useFeedPosts() {
   const { user } = useAuth();
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["feed-posts", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
+    queryFn: async ({ pageParam = 0 }) => {
+      if (!user) return { posts: [], nextCursor: undefined };
 
-      // Get followed user IDs
       const { data: followsData } = await supabase
         .from("follows")
         .select("following_id")
         .eq("follower_id", user.id);
 
       const followedIds = followsData?.map((f) => f.following_id) || [];
-      // Include own posts + followed users' posts
       const feedUserIds = [user.id, ...followedIds];
 
       const { data: posts, error } = await supabase
@@ -42,47 +82,18 @@ export function useFeedPosts() {
         .select("id, user_id, caption, created_at")
         .in("user_id", feedUserIds)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .range(pageParam, pageParam + FEED_PAGE_SIZE - 1);
 
       if (error) throw error;
-      if (!posts?.length) return [];
 
-      const postIds = posts.map((p) => p.id);
-      const userIds = [...new Set(posts.map((p) => p.user_id))];
-
-      const [profilesRes, mediaRes, likesRes, commentsRes, userLikesRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, username, display_name, avatar_url").in("user_id", userIds),
-        supabase.from("post_media").select("id, post_id, media_url, media_type, sort_order").in("post_id", postIds).order("sort_order"),
-        supabase.from("likes").select("post_id").in("post_id", postIds),
-        supabase.from("comments").select("post_id").in("post_id", postIds),
-        user ? supabase.from("likes").select("post_id").eq("user_id", user.id).in("post_id", postIds) : Promise.resolve({ data: [] }),
-      ]);
-
-      const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, p]));
-      const mediaByPost = new Map<string, typeof mediaRes.data>();
-      mediaRes.data?.forEach((m) => {
-        const arr = mediaByPost.get(m.post_id) || [];
-        arr.push(m);
-        mediaByPost.set(m.post_id, arr);
-      });
-
-      const likesCount = new Map<string, number>();
-      likesRes.data?.forEach((l) => likesCount.set(l.post_id, (likesCount.get(l.post_id) || 0) + 1));
-
-      const commentsCount = new Map<string, number>();
-      commentsRes.data?.forEach((c) => commentsCount.set(c.post_id, (commentsCount.get(c.post_id) || 0) + 1));
-
-      const userLikedSet = new Set(userLikesRes.data?.map((l) => l.post_id));
-
-      return posts.map((post): PostWithDetails => ({
-        ...post,
-        profile: profileMap.get(post.user_id) || { username: null, display_name: null, avatar_url: null },
-        media: mediaByPost.get(post.id) || [],
-        likes_count: likesCount.get(post.id) || 0,
-        comments_count: commentsCount.get(post.id) || 0,
-        is_liked: userLikedSet.has(post.id),
-      }));
+      const enriched = await enrichPosts(posts || [], user.id);
+      return {
+        posts: enriched,
+        nextCursor: (posts?.length || 0) >= FEED_PAGE_SIZE ? pageParam + FEED_PAGE_SIZE : undefined,
+      };
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: 0,
     enabled: !!user,
   });
 }
@@ -159,11 +170,9 @@ export function useCreatePost() {
     mutationFn: async ({ caption, files }: { caption: string; files: File[] }) => {
       if (!user) throw new Error("Not authenticated");
 
-      // Extract hashtags
       const hashtagRegex = /#(\w+)/g;
       const hashtags = [...caption.matchAll(hashtagRegex)].map((m) => m[1].toLowerCase());
 
-      // Create post
       const { data: post, error: postError } = await supabase
         .from("posts")
         .insert({ user_id: user.id, caption })
@@ -172,7 +181,6 @@ export function useCreatePost() {
 
       if (postError) throw postError;
 
-      // Upload media
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const ext = file.name.split(".").pop();
@@ -192,7 +200,6 @@ export function useCreatePost() {
         });
       }
 
-      // Handle hashtags
       for (const tag of hashtags) {
         const { data: existing } = await supabase.from("hashtags").select("id").eq("name", tag).single();
         let hashtagId: string;
