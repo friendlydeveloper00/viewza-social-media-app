@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
 import { useFeedPosts } from "@/hooks/use-posts";
@@ -6,13 +6,16 @@ import { PostCard } from "@/components/post/PostCard";
 import StoriesBar from "@/components/stories/StoriesBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import PullToRefresh from "@/components/PullToRefresh";
+import InfiniteScroll from "@/components/InfiniteScroll";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 
 export default function Index() {
-  const { data: posts, isLoading } = useFeedPosts();
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useFeedPosts();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const posts = useMemo(() => data?.pages.flatMap((p) => p.posts) ?? [], [data]);
 
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["feed-posts", user?.id] });
@@ -20,7 +23,6 @@ export default function Index() {
 
   return (
     <div className="max-w-lg mx-auto">
-      {/* Header */}
       <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-3">
         <div className="flex items-center gap-2">
           <Flame className="h-6 w-6 text-primary" />
@@ -29,7 +31,6 @@ export default function Index() {
       </div>
 
       <PullToRefresh onRefresh={handleRefresh}>
-        {/* Stories */}
         <div className="border-b border-border/50">
           <StoriesBar />
         </div>
@@ -59,12 +60,18 @@ export default function Index() {
               </div>
             ))}
           </div>
-        ) : posts && posts.length > 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </motion.div>
+        ) : posts.length > 0 ? (
+          <InfiniteScroll
+            onLoadMore={() => fetchNextPage()}
+            hasMore={!!hasNextPage}
+            isLoading={isFetchingNextPage}
+          >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </motion.div>
+          </InfiniteScroll>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 px-4">
             <Flame className="h-16 w-16 text-primary mx-auto mb-4 animate-pulse" />
