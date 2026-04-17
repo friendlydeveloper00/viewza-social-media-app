@@ -18,6 +18,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_LOADING_TIMEOUT_MS = 5000;
 
+const isPreviewAuthNetworkError = (error: Error | null) => {
+  if (!error) return false;
+  return /failed to fetch/i.test(error.message) || /AuthRetryableFetchError/i.test(error.name);
+};
+
+const signInWithPreviewFallback = async (email: string, password: string) => {
+  const { data, error } = await supabase.functions.invoke("preview-password-signin", {
+    body: { email, password },
+  });
+
+  if (error) {
+    return { error: error as Error | null };
+  }
+
+  const accessToken = data?.session?.access_token;
+  const refreshToken = data?.session?.refresh_token;
+
+  if (!accessToken || !refreshToken) {
+    return { error: new Error("Sign-in failed. Please try again.") };
+  }
+
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+
+  return { error: sessionError as Error | null };
+};
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -89,7 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+
+    if (!isPreviewAuthNetworkError(error as Error | null)) {
+      return { error: error as Error | null };
+    }
+
+    return signInWithPreviewFallback(email, password);
   };
 
   const signInWithEmailOtp = async (email: string) => {
